@@ -47,12 +47,12 @@ const navItems = [
     },
     {
         title: "Users",
-        url: "/users",
+        url: "/dashboard/users",
         icon: Users,
     },
     {
         title: "Settings",
-        url: "/settings",
+        url: "/dashboard/settings",
         icon: Settings,
     },
 ];
