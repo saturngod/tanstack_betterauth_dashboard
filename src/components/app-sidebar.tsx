@@ -1,4 +1,5 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
+import { authClient } from "@/lib/auth-client";
 import {
     LayoutDashboard,
     Users,
@@ -44,8 +45,18 @@ const navItems = [
 ];
 
 export function AppSidebar() {
-    const router = useRouterState();
-    const currentPath = router.location.pathname;
+    const router = useRouter();
+    const currentPath = router.state.location.pathname;
+
+    const handleLogout = async () => {
+        await authClient.signOut({
+            fetchOptions: {
+                onSuccess: () => {
+                    router.navigate({ to: "/login" });
+                },
+            },
+        });
+    };
 
     return (
         <Sidebar collapsible="icon">
@@ -107,7 +118,7 @@ export function AppSidebar() {
                                 <DropdownMenuItem>
                                     <span>Account</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleLogout}>
                                     <span>Sign out</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>

@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { PrismaClient } from "../generated/prisma/client";
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { prismaAdapter } from "better-auth/adapters/prisma";
@@ -23,6 +24,7 @@ export const auth = betterAuth({
     }),
     emailAndPassword: {
         enabled: true
-    }
+    },
+    plugins: [tanstackStartCookies()]
 });
 
