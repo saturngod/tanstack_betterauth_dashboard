@@ -67,12 +67,25 @@ Protected dashboard routes are nested under `_dashboard.tsx`:
 ```
 routes/
   __root.tsx          # Root layout with providers
-  _dashboard.tsx      # Protected layout (uses authMiddleware)
+  index.tsx           # Home page (/)
+  login.tsx           # Login page
+  register.tsx        # Register page
+  _dashboard.tsx      # Protected layout (uses authMiddleware + beforeLoad)
   _dashboard/
-    dashboard.tsx     # /dashboard
-    users.tsx         # /dashboard/users
-    settings.tsx      # /dashboard/settings
+    dashboard/
+      index.tsx       # /dashboard
+      account.tsx     # /dashboard/account
+      users.tsx       # /dashboard/users
+      settings.tsx    # /dashboard/settings
+    api/auth/$        # Auth API endpoints
 ```
+
+### Middleware Usage
+All database and auth commands use `dotenv-cli` to load `.env.local`:
+```bash
+dotenv -e .env.local -- prisma generate
+```
+This is handled automatically by the npm scripts.
 
 ## Important Notes
 

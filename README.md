@@ -1,299 +1,278 @@
-Welcome to your new TanStack app! 
+# TanStack Start Admin Dashboard
 
-# Getting Started
+A full-stack React admin dashboard built with TanStack Start, Prisma ORM, Better Auth, and shadcn/ui components.
 
-To run this application:
+## Tech Stack
+
+- **Framework**: TanStack Start (React-based full-stack framework)
+- **Database**: MySQL with Prisma ORM (using Prisma MariaDB adapter)
+- **Authentication**: Better Auth with email/password provider
+- **UI Components**: shadcn/ui with Radix UI primitives
+- **Styling**: Tailwind CSS v4
+- **State Management**: TanStack Query for client-side data fetching
+- **Routing**: TanStack Router with file-based routing
+- **Build Tool**: Vite with Nitro for SSR
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- MySQL database server running locally or remotely
+
+### Installation
 
 ```bash
+# Install dependencies
 npm install
-npm run start
+
+# Copy environment variables
+cp .env.example .env.local
+
+# Update .env.local with your database credentials
 ```
 
-# Building For Production
+### Environment Variables (.env.local)
 
-To build this application for production:
+Create a `.env.local` file in the root directory with the following variables:
 
 ```bash
+# Database Connection (MySQL)
+DATABASE_URL="mysql://root:password@localhost:3306/your_database"
+DATABASE_HOST="localhost"
+DATABASE_PORT=3306
+DATABASE_USER="root"
+DATABASE_PASSWORD="your_password"
+DATABASE_NAME="your_database_name"
+
+# App Configuration
+AFTER_LOGIN="/dashboard"  # Where to redirect after successful login
+```
+
+These variables are used by:
+- **Prisma**: To connect to your MySQL database
+- **Better Auth**: To store user sessions and manage authentication
+
+### Database Setup
+
+This project uses **Prisma ORM** with MySQL. The database schema is defined in `prisma/schema.prisma`.
+
+#### Database Models
+
+- **User**: Stores user information (id, name, email, password)
+- **Session**: Stores active user sessions for authentication
+- **Account**: Stores OAuth provider credentials (for future OAuth integrations)
+- **Verification**: Stores email verification tokens
+
+#### Database Commands
+
+```bash
+# Generate Prisma client (run after schema changes)
+npm run db:generate
+
+# Push schema changes to database (development only - no migrations)
+npm run db:push
+
+# Run database migrations (production)
+npm run db:migrate
+
+# Open Prisma Studio (database GUI)
+npm run db:studio
+
+# Seed database with initial data
+npm run db:seed
+```
+
+**How it works:**
+1. `npm run db:generate` - Reads `prisma/schema.prisma` and generates the Prisma client in `src/generated/prisma/`
+2. `npm run db:push` - Pushes your schema directly to the database without creating a migration file (use in development)
+3. `npm run db:migrate` - Creates a migration file and applies it to the database (use in production)
+4. `npm run db:studio` - Opens a visual database browser at `http://localhost:5555`
+
+**Important**: All database commands use `dotenv-cli` to load variables from `.env.local` automatically.
+
+### Authentication Setup
+
+This project uses **Better Auth** for user authentication with email/password provider.
+
+#### How Better Auth Works
+
+**Server-side** (`src/lib/auth.ts`):
+- Configures Better Auth with Prisma adapter
+- Sets up email/password authentication
+- Uses Prisma MariaDB adapter for better MySQL support
+
+```typescript
+export const auth = betterAuth({
+    database: prismaAdapter(prisma, { provider: "mysql" }),
+    emailAndPassword: { enabled: true },
+    plugins: [tanstackStartCookies()]
+});
+```
+
+**Client-side** (`src/lib/auth-client.ts`):
+- Creates auth client for React components
+- Provides methods for sign in, sign up, sign out
+
+#### Authentication Flow
+
+1. **Registration** (`src/routes/register.tsx`):
+   - User fills out registration form (name, email, password)
+   - Client calls `authClient.signUp.email()`
+   - Better Auth hashes password and creates user in database
+   - Session is created and stored in cookies
+   - User redirects to `/dashboard`
+
+2. **Login** (`src/routes/login.tsx`):
+   - User enters email and password
+   - Client calls `authClient.signIn.email()`
+   - Better Auth verifies credentials
+   - Session is created and stored in cookies
+   - User redirects to `/dashboard`
+
+3. **Protected Routes**:
+   - Middleware checks for valid session
+   - Unauthenticated users redirected to `/login`
+   - Authenticated users accessing login/register redirected to `/dashboard`
+
+#### Auth Middleware
+
+Two middleware functions protect routes (`src/lib/auth-middleware.ts`):
+
+- **`authMiddleware`**: Ensures user is authenticated (used on dashboard routes)
+- **`guestMiddleware`**: Ensures user is NOT authenticated (used on login/register pages)
+
+#### Auth Configuration
+
+After modifying auth settings, regenerate the auth configuration:
+
+```bash
+npm run auth:generate
+```
+
+## Folder Structure
+
+```
+admin-dashboard/
+├── prisma/
+│   └── schema.prisma          # Database schema definition
+├── src/
+│   ├── components/
+│   │   ├── dashboard-layout.tsx    # Main dashboard layout wrapper
+│   │   ├── ui/                     # shadcn/ui components
+│   │   └── app-sidebar.tsx         # Sidebar navigation
+│   ├── generated/
+│   │   └── prisma/                 # Auto-generated Prisma client
+│   ├── integrations/
+│   │   └── tanstack-query/         # TanStack Query setup
+│   ├── lib/
+│   │   ├── auth.ts                 # Better Auth server configuration
+│   │   ├── auth-client.ts          # Better Auth client configuration
+│   │   └── auth-middleware.ts      # Auth middleware functions
+│   ├── routes/
+│   │   ├── __root.tsx              # Root layout with providers
+│   │   ├── index.tsx               # Home page (/)
+│   │   ├── login.tsx               # Login page (/login)
+│   │   ├── register.tsx            # Register page (/register)
+│   │   ├── _dashboard.tsx          # Protected layout wrapper
+│   │   └── _dashboard/
+│   │       ├── dashboard/
+│   │       │   ├── index.tsx       # Dashboard home (/dashboard)
+│   │       │   ├── account.tsx     # Account settings (/dashboard/account)
+│   │       │   ├── users.tsx       # Users page (/dashboard/users)
+│   │       │   └── settings.tsx    # Settings page (/dashboard/settings)
+│   │       └── api/auth/$          # Auth API endpoints
+│   └── styles.css                  # Global styles with Tailwind
+├── .env.local                      # Environment variables (not in git)
+├── .env.example                    # Example environment variables
+├── package.json
+└── vite.config.ts
+```
+
+### Routing Pattern
+
+This project uses **file-based routing** via TanStack Router:
+
+- **Layout routes** (prefix with `_`): Wrap child routes with shared UI
+  - `_dashboard.tsx`: Protected layout with sidebar navigation
+- **File routes**: Automatically become URL paths
+  - `index.tsx` → `/`
+  - `login.tsx` → `/login`
+  - `_dashboard/dashboard/index.tsx` → `/dashboard`
+
+**Protected Routes Pattern**:
+```
+_dashboard.tsx (protected layout)
+  └── _dashboard/
+       └── dashboard/
+            ├── index.tsx
+            ├── users.tsx
+            └── settings.tsx
+```
+
+All routes under `_dashboard.tsx` require authentication.
+
+## Development Commands
+
+```bash
+# Start development server (runs on port 3000)
+npm run dev
+
+# Build for production
 npm run build
-```
 
-## Testing
+# Preview production build
+npm run preview
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
-
-```bash
+# Run tests (Vitest)
 npm run test
 ```
 
-## Styling
+## Adding UI Components
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
-
-
-
-## Shadcn
-
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
+This project uses shadcn/ui components. Add new components with:
 
 ```bash
-pnpm dlx shadcn@latest add button
+pnpm dlx shadcn@latest add <component-name>
 ```
-
-
-
-## Routing
-This project uses [TanStack Router](https://tanstack.com/router). The initial setup is a file based router. Which means that the routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add another a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you use the `<Outlet />` component.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { Outlet, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-
-import { Link } from "@tanstack/react-router";
-
-export const Route = createRootRoute({
-  component: () => (
-    <>
-      <header>
-        <nav>
-          <Link to="/">Home</Link>
-          <Link to="/about">About</Link>
-        </nav>
-      </header>
-      <Outlet />
-      <TanStackRouterDevtools />
-    </>
-  ),
-})
-```
-
-The `<TanStackRouterDevtools />` component is not required so you can remove it if you don't want it in your layout.
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
 
 For example:
-
-```tsx
-const peopleRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/people",
-  loader: async () => {
-    const response = await fetch("https://swapi.dev/api/people");
-    return response.json() as Promise<{
-      results: {
-        name: string;
-      }[];
-    }>;
-  },
-  component: () => {
-    const data = peopleRoute.useLoaderData();
-    return (
-      <ul>
-        {data.results.map((person) => (
-          <li key={person.name}>{person.name}</li>
-        ))}
-      </ul>
-    );
-  },
-});
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-### React-Query
-
-React-Query is an excellent addition or alternative to route loading and integrating it into you application is a breeze.
-
-First add your dependencies:
-
 ```bash
-npm install @tanstack/react-query @tanstack/react-query-devtools
+pnpm dlx shadcn@latest add button
+pnpm dlx shadcn@latest add card
+pnpm dlx shadcn@latest add input
 ```
 
-Next we'll need to create a query client and provider. We recommend putting those in `main.tsx`.
+Components are added to `src/components/ui/` and can be imported with:
 
-```tsx
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-// ...
-
-const queryClient = new QueryClient();
-
-// ...
-
-if (!rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement);
-
-  root.render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  );
-}
+```typescript
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 ```
 
-You can also add TanStack Query Devtools to the root route (optional).
+## Common Development Tasks
 
-```tsx
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+### Adding a New Protected Route
 
-const rootRoute = createRootRoute({
-  component: () => (
-    <>
-      <Outlet />
-      <ReactQueryDevtools buttonPosition="top-right" />
-      <TanStackRouterDevtools />
-    </>
-  ),
+1. Create a new file in `src/routes/_dashboard/dashboard/` (e.g., `products.tsx`)
+2. Export the route:
+```typescript
+export const Route = createFileRoute("/_dashboard/dashboard/products")({
+  component: ProductsPage,
 });
 ```
+3. The route is automatically protected by `_dashboard.tsx`
 
-Now you can use `useQuery` to fetch your data.
+### Modifying Database Schema
 
-```tsx
-import { useQuery } from "@tanstack/react-query";
+1. Edit `prisma/schema.prisma`
+2. Run `npm run db:generate` to regenerate Prisma client
+3. Run `npm run db:push` (dev) or `npm run db:migrate` (prod) to update database
 
-import "./App.css";
+### Adding Authentication to a Route
 
-function App() {
-  const { data } = useQuery({
-    queryKey: ["people"],
-    queryFn: () =>
-      fetch("https://swapi.dev/api/people")
-        .then((res) => res.json())
-        .then((data) => data.results as { name: string }[]),
-    initialData: [],
-  });
+Protected routes automatically inherit authentication from `_dashboard.tsx`. For public routes that need optional auth, use the `getSession` helper from `_dashboard.tsx`.
 
-  return (
-    <div>
-      <ul>
-        {data.map((person) => (
-          <li key={person.name}>{person.name}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+## License
 
-export default App;
-```
-
-You can find out everything you need to know on how to use React-Query in the [React-Query documentation](https://tanstack.com/query/latest/docs/framework/react/overview).
-
-## State Management
-
-Another common requirement for React applications is state management. There are many options for state management in React. TanStack Store provides a great starting point for your project.
-
-First you need to add TanStack Store as a dependency:
-
-```bash
-npm install @tanstack/store
-```
-
-Now let's create a simple counter in the `src/App.tsx` file as a demonstration.
-
-```tsx
-import { useStore } from "@tanstack/react-store";
-import { Store } from "@tanstack/store";
-import "./App.css";
-
-const countStore = new Store(0);
-
-function App() {
-  const count = useStore(countStore);
-  return (
-    <div>
-      <button onClick={() => countStore.setState((n) => n + 1)}>
-        Increment - {count}
-      </button>
-    </div>
-  );
-}
-
-export default App;
-```
-
-One of the many nice features of TanStack Store is the ability to derive state from other state. That derived state will update when the base state updates.
-
-Let's check this out by doubling the count using derived state.
-
-```tsx
-import { useStore } from "@tanstack/react-store";
-import { Store, Derived } from "@tanstack/store";
-import "./App.css";
-
-const countStore = new Store(0);
-
-const doubledStore = new Derived({
-  fn: () => countStore.state * 2,
-  deps: [countStore],
-});
-doubledStore.mount();
-
-function App() {
-  const count = useStore(countStore);
-  const doubledCount = useStore(doubledStore);
-
-  return (
-    <div>
-      <button onClick={() => countStore.setState((n) => n + 1)}>
-        Increment - {count}
-      </button>
-      <div>Doubled - {doubledCount}</div>
-    </div>
-  );
-}
-
-export default App;
-```
-
-We use the `Derived` class to create a new store that is derived from another store. The `Derived` class has a `mount` method that will start the derived store updating.
-
-Once we've created the derived store we can use it in the `App` component just like we would any other store using the `useStore` hook.
-
-You can find out everything you need to know on how to use TanStack Store in the [TanStack Store documentation](https://tanstack.com/store/latest).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
+MIT
