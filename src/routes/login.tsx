@@ -37,10 +37,10 @@ function LoginPage() {
             await authClient.signIn.email({
                 email,
                 password,
-                callbackURL: "/dashboard",
+                callbackURL: process.env.AFTER_LOGIN || "/dashboard",
                 fetchOptions: {
                     onSuccess: () => {
-                        router.navigate({ to: "/dashboard" });
+                        router.navigate({ to: process.env.AFTER_LOGIN || "/dashboard" });
                     },
                     onError: (ctx: { error: { message?: string } }) => {
                         setError(ctx.error.message || "Login failed");

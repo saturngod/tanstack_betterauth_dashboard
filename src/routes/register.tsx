@@ -12,8 +12,13 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Loader2 } from "lucide-react";
+import { guestMiddleware } from "@/lib/auth-middleware";
 
 export const Route = createFileRoute("/register")({
+    // @ts-ignore
+    server: {
+        middleware: [guestMiddleware],
+    },
     component: RegisterPage,
 });
 
@@ -36,14 +41,14 @@ function RegisterPage() {
             email,
             password,
             name,
-            callbackURL: "/dashboard"
+            callbackURL: process.env.AFTER_LOGIN || "/dashboard"
         }, {
             onRequest: () => {
                 setIsLoading(true);
             },
             onSuccess: () => {
                 setIsLoading(false);
-                navigate({ to: "/dashboard" });
+                navigate({ to: process.env.AFTER_LOGIN || "/dashboard" });
             },
             onError: (ctx) => {
                 setIsLoading(false);

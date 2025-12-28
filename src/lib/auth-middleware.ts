@@ -19,7 +19,7 @@ export const guestMiddleware = createMiddleware().server(
         const headers = getRequestHeaders();
         const session = await auth.api.getSession({ headers })
         if (session) {
-            throw redirect({ to: "/dashboard" })
+            throw redirect({ to: process.env.AFTER_LOGIN || "/dashboard" })
         }
         return await next()
     }
