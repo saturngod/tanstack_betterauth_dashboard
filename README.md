@@ -273,6 +273,13 @@ export const Route = createFileRoute("/_dashboard/dashboard/products")({
 
 Protected routes automatically inherit authentication from `_dashboard.tsx`. For public routes that need optional auth, use the `getSession` helper from `_dashboard.tsx`.
 
+## Screenshots
+
+![Login](./docs/images/login.png)
+![Register](./docs/images/register.png)
+![Dashboard](./docs/images/dashboard.png)
+![Settings](./docs/images/settings.png)
+
 ## License
 
 MIT
