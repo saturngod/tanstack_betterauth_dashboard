@@ -13,3 +13,14 @@ export const authMiddleware = createMiddleware().server(
         return await next()
     }
 );
+
+export const guestMiddleware = createMiddleware().server(
+    async ({ next }) => {
+        const headers = getRequestHeaders();
+        const session = await auth.api.getSession({ headers })
+        if (session) {
+            throw redirect({ to: "/dashboard" })
+        }
+        return await next()
+    }
+);
